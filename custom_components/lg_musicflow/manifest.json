@@ -4,9 +4,9 @@
   "codeowners": ["@sidprax"],
   "config_flow": true,
   "documentation": "https://github.com/sidprax/ha-lg-musicflow",
-  "issue_tracker": "https://github.com/sidprax/ha-lg-musicflow/issues",
   "integration_type": "hub",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/sidprax/ha-lg-musicflow/issues",
   "ssdp": [
     {
       "manufacturer": "LG Electronics",
