@@ -1,0 +1,20 @@
+{
+  "domain": "lg_musicflow",
+  "name": "LG MusicFlow (Legacy)",
+  "codeowners": ["@sidprax"],
+  "config_flow": true,
+  "documentation": "https://github.com/sidprax/ha-lg-musicflow",
+  "issue_tracker": "https://github.com/sidprax/ha-lg-musicflow/issues",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "ssdp": [
+    {
+      "manufacturer": "LG Electronics",
+      "modelDescription": "LG Music Flow"
+    },
+    {
+      "deviceType": "urn:lge-com:device:MultiroomSpk:1"
+    }
+  ],
+  "version": "1.0.0"
+}

@@ -1,0 +1,58 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "LG MusicFlow (Legacy) Setup",
+        "menu_options": {
+          "connect": "Connect to speaker by IP address",
+          "wizard_menu": "Speaker not found / Reset & Wi-Fi Setup Wizard"
+        }
+      },
+      "connect": {
+        "title": "Connect Speaker",
+        "description": "Connect to an LG Music Flow soundbar or speaker on your local network. (If the speaker is on another VLAN, ensure TCP port 9741 is allowed).",
+        "data": {
+          "host": "Speaker IP Address",
+          "port": "Port (default 9741)"
+        }
+      },
+      "wizard_menu": {
+        "title": "Reset & Wi-Fi Setup Wizard",
+        "description": "If your speaker is not found across your VLANs, or has lost its Wi-Fi configuration, choose how you'd like to set it up:",
+        "menu_options": {
+          "wizard_ethernet": "Option 1: Setup via temporary Ethernet cable (Directly inside Home Assistant)",
+          "wizard_hotspot_guide": "Option 2: Setup via Wi-Fi hotspot (From your laptop or PC)"
+        }
+      },
+      "wizard_ethernet": {
+        "title": "Option 1: Ethernet-Assisted Wi-Fi Setup",
+        "description": "1. Ensure the speaker is powered ON.\n2. Press and hold the **Wi-Fi / Add** button on the back/remote for 5–10 seconds until the LED flashes.\n3. Plug an Ethernet cable into the speaker and your router or switch temporarily.\n4. Enter the speaker's IP and your home 2.4GHz Wi-Fi details below. Home Assistant will configure the speaker and add it immediately.",
+        "data": {
+          "speaker_host": "Speaker Ethernet IP Address",
+          "wifi_ssid": "Home Wi-Fi Network Name (SSID - 2.4GHz)",
+          "wifi_password": "Wi-Fi Password",
+          "speaker_name": "Speaker Name (e.g. Living Room SJ9)"
+        }
+      },
+      "wizard_hotspot_guide": {
+        "title": "Option 2: Wi-Fi Hotspot Setup (From Laptop/PC)",
+        "description": "Home Assistant runs as a home server and does not disconnect or change its own Wi-Fi. To configure the speaker using its temporary setup hotspot, use any laptop or PC:\n\n1. Ensure the speaker is powered ON.\n2. Press and hold the **Wi-Fi / Add** button on the back/remote for 5–10 seconds until the LED flashes white/amber.\n3. On your laptop or PC, connect your Wi-Fi to the network named **MusicFlow_Setup_xxxx**.\n4. Run the setup tool provided with this integration:\n   `node setup_soundbar_wifi.js`\n5. Follow the terminal prompts to send your home Wi-Fi credentials.\n6. Once configured, reconnect your laptop to your home network. Home Assistant will automatically discover the speaker!"
+      },
+      "confirm": {
+        "title": "Discovered LG Music Flow Speaker",
+        "description": "Do you want to set up {name} ({model}) at {host}?"
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the speaker at this IP. If your speaker was reset or lost Wi-Fi, try the Reset & Wi-Fi Setup Wizard.",
+      "cannot_connect_speaker": "Could not reach the speaker at the specified IP. Check that the Ethernet cable is connected and the IP is correct.",
+      "unknown": "Unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This device is already configured in Home Assistant.",
+      "cannot_connect": "Could not connect to the discovered speaker.",
+      "provision_success": "Wi-Fi credentials sent to the speaker! You may now disconnect the Ethernet cable. The speaker will connect to your Wi-Fi network and be discovered in Home Assistant.",
+      "hotspot_guide_complete": "Once setup is completed on your computer, Home Assistant will automatically discover your speaker on the network."
+    }
+  }
+}
