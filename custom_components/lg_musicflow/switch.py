@@ -1,4 +1,4 @@
-﻿"""Switch platform for LG MusicFlow (Legacy)."""
+"""Switch platform for LG MusicFlow (Legacy)."""
 from __future__ import annotations
 
 from typing import Any

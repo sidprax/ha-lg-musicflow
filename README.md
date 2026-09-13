@@ -1,4 +1,4 @@
-﻿# LG MusicFlow (Legacy) for Home Assistant
+# LG MusicFlow (Legacy) for Home Assistant
 
 [![HACS Badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/default)
 [![GitHub Release](https://img.shields.io/github/v/release/sidprax/ha-lg-musicflow)](https://github.com/sidprax/ha-lg-musicflow/releases)

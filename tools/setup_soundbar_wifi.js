@@ -1,4 +1,4 @@
-﻿const net = require("net");
+const net = require("net");
 const readline = require("readline");
 
 function send(host, port, payload) {

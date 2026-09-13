@@ -1,4 +1,4 @@
-﻿"""Media Player platform for LG MusicFlow (Legacy)."""
+"""Media Player platform for LG MusicFlow (Legacy)."""
 from __future__ import annotations
 
 import logging

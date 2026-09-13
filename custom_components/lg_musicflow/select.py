@@ -1,4 +1,4 @@
-﻿"""Select platform for LG MusicFlow (Legacy)."""
+"""Select platform for LG MusicFlow (Legacy)."""
 from __future__ import annotations
 
 from homeassistant.components.select import SelectEntity

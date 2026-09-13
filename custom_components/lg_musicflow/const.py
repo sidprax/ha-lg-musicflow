@@ -1,4 +1,4 @@
-﻿"""Constants for the LG MusicFlow (Legacy) integration."""
+"""Constants for the LG MusicFlow (Legacy) integration."""
 
 DOMAIN = "lg_musicflow"
 DEFAULT_PORT = 9741

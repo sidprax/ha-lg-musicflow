@@ -1,4 +1,4 @@
-﻿"""DataUpdateCoordinator for LG Music Flow speakers."""
+"""DataUpdateCoordinator for LG Music Flow speakers."""
 from datetime import timedelta
 import logging
 

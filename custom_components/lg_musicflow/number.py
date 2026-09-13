@@ -1,4 +1,4 @@
-﻿"""Number platform for LG MusicFlow (Legacy)."""
+"""Number platform for LG MusicFlow (Legacy)."""
 from __future__ import annotations
 
 from homeassistant.components.number import NumberEntity, NumberMode
