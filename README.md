@@ -14,16 +14,16 @@ Unlike standard DLNA (which often fails with `UPnPError 705: Access denied` on L
 
 ## Features
 
-- 🎵 **Direct Audio Streaming (`play_media`)**: Streams audio URLs, internet radio, and TTS announcements directly to the speaker using LG's native playback protocol.
-- 🎛️ **Full Playback Controls**: Play, Pause, Stop, Mute, Volume slider.
-- 🔌 **Dynamic Source Selection**: Auto-discovers and exposes all supported physical and wireless inputs (`Wi-Fi`, `Optical / HDMI ARC`, `Bluetooth`, `LG TV`, `HDMI`, `Portable`, etc.) both as media player sources and as a discrete `select` entity on the device page.
-- 🎼 **Equalizer & Sound Modes**: Auto-discovers supported sound presets (`Dolby Atmos`, `Bass Blast`, `Cinema`, `Music`, `Adaptive Sound Control`, `Standard`, etc.) exposed as a discrete `select` entity.
-- 🔊 **Subwoofer Control**: Real-time subwoofer dB slider (`-15 dB` to `+6 dB` with 1 dB steps).
-- 🌙 **Night Mode & Auto Power**: Switch entities for Night Mode (dynamic range compression) and Auto Power (which prevents the soundbar from automatically switching to Optical when a TV is in standby).
-- 📡 **SSDP Auto-Discovery**: Automatically detected on your local network.
-- 🎶 **Music Assistant Compatible**: Seamlessly compatible with Music Assistant via the Home Assistant Player provider.
-- 🛠️ **Guided Wi-Fi Setup Wizard**: Built-in config flow recovery wizard to configure and provision factory-reset speakers back onto your 2.4GHz Wi-Fi network.
-- 💻 **Standalone Setup Script**: Includes a standalone tool (`tools/setup_soundbar_wifi.js`) that allows configuring a reset speaker from any computer without an app.
+- **Direct Audio Streaming (`play_media`)**: Streams audio URLs, internet radio, and TTS announcements directly to the speaker using LG's native playback protocol.
+- **Full Playback Controls**: Play, Pause, Stop, Mute, Volume slider.
+- **Dynamic Source Selection**: Auto-discovers and exposes all supported physical and wireless inputs (`Wi-Fi`, `Optical / HDMI ARC`, `Bluetooth`, `LG TV`, `HDMI`, `Portable`, etc.) both as media player sources and as a discrete `select` entity on the device page.
+- **Equalizer & Sound Modes**: Auto-discovers supported sound presets (`Dolby Atmos`, `Bass Blast`, `Cinema`, `Music`, `Adaptive Sound Control`, `Standard`, etc.) exposed as a discrete `select` entity.
+- **Subwoofer Control**: Real-time subwoofer dB slider (`-15 dB` to `+6 dB` with 1 dB steps).
+- **Night Mode & Auto Power**: Switch entities for Night Mode (dynamic range compression) and Auto Power (which prevents the soundbar from automatically switching to Optical when a TV is in standby).
+- **SSDP Auto-Discovery**: Automatically detected on your local network.
+- **Music Assistant Compatible**: Seamlessly compatible with Music Assistant via the Home Assistant Player provider.
+- **Guided Wi-Fi Setup Wizard**: Built-in config flow recovery wizard to configure and provision factory-reset speakers back onto your 2.4GHz Wi-Fi network.
+- **Standalone Setup Script**: Includes a standalone tool (`tools/setup_soundbar_wifi.js`) that allows configuring a reset speaker from any computer without an app.
 
 ---
 
