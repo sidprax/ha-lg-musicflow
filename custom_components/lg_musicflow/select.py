@@ -83,6 +83,8 @@ class LGMusicFlowSourceSelect(LGMusicFlowBaseSelect):
     def current_option(self) -> str | None:
         """Return the current input source."""
         fn_code = self.coordinator.data.get("func", {}).get("type")
+        if fn_code in (4, 7, 15) and "Optical / HDMI ARC" in self.options:
+            return "Optical / HDMI ARC"
         return FUNCTION_MAP.get(fn_code)
 
     async def async_select_option(self, option: str) -> None:

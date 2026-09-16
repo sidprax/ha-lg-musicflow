@@ -106,6 +106,8 @@ class LGMusicFlowMediaPlayer(CoordinatorEntity[LGMusicFlowCoordinator], MediaPla
             | MediaPlayerEntityFeature.STOP
             | MediaPlayerEntityFeature.MEDIA_ANNOUNCE
             | MediaPlayerEntityFeature.BROWSE_MEDIA
+            | MediaPlayerEntityFeature.TURN_OFF
+            | MediaPlayerEntityFeature.TURN_ON
         )
 
     @property
@@ -152,6 +154,8 @@ class LGMusicFlowMediaPlayer(CoordinatorEntity[LGMusicFlowCoordinator], MediaPla
     def source(self) -> str | None:
         """Current input source."""
         fn_code = self.coordinator.data.get("func", {}).get("type")
+        if fn_code in (4, 7, 15) and "Optical / HDMI ARC" in self._sources:
+            return "Optical / HDMI ARC"
         return FUNCTION_MAP.get(fn_code)
 
     @property
@@ -224,7 +228,26 @@ class LGMusicFlowMediaPlayer(CoordinatorEntity[LGMusicFlowCoordinator], MediaPla
 
     async def async_media_stop(self) -> None:
         """Send stop command."""
-        await self.coordinator.client.async_media_stop()
+        if self.state in (MediaPlayerState.PLAYING, MediaPlayerState.PAUSED, MediaPlayerState.BUFFERING):
+            try:
+                await self.coordinator.client.async_media_stop()
+            except Exception:
+                pass
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off media player (stop playback and return to Wi-Fi standby)."""
+        if self.state in (MediaPlayerState.PLAYING, MediaPlayerState.PAUSED, MediaPlayerState.BUFFERING):
+            try:
+                await self.coordinator.client.async_media_stop()
+            except Exception:
+                pass
+        await self.coordinator.client.async_set_function(0)
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on media player (set to Wi-Fi mode)."""
+        await self.coordinator.client.async_set_function(0)
         await self.coordinator.async_request_refresh()
 
     async def async_play_media(
