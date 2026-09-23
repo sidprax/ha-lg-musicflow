@@ -1,4 +1,5 @@
 """Media Player platform for LG MusicFlow (Legacy)."""
+
 from __future__ import annotations
 
 import logging
@@ -6,7 +7,6 @@ from typing import Any
 
 from homeassistant.components import media_source
 from homeassistant.components.media_player import (
-    BrowseError,
     MediaPlayerDeviceClass,
     MediaPlayerEntity,
     MediaPlayerEntityFeature,
@@ -15,13 +15,16 @@ from homeassistant.components.media_player import (
     async_process_play_media_url,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME
+from homeassistant.const import CONF_HOST, CONF_NAME
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .client import LGMusicFlowError
 from .const import (
+    DATA_STREAM_MANAGER,
     DOMAIN,
     EQUALIZER_MAP,
     EQUALIZER_REVERSE_MAP,
@@ -32,6 +35,7 @@ from .const import (
     STATE_PLAYING,
 )
 from .coordinator import LGMusicFlowCoordinator
+from .stream import LGMusicFlowStreamError, LGMusicFlowStreamManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +50,9 @@ async def async_setup_entry(
     async_add_entities([LGMusicFlowMediaPlayer(coordinator, entry)])
 
 
-class LGMusicFlowMediaPlayer(CoordinatorEntity[LGMusicFlowCoordinator], MediaPlayerEntity):
+class LGMusicFlowMediaPlayer(
+    CoordinatorEntity[LGMusicFlowCoordinator], MediaPlayerEntity
+):
     """Representation of an LG Music Flow soundbar/speaker."""
 
     _attr_has_entity_name = True
@@ -57,7 +63,11 @@ class LGMusicFlowMediaPlayer(CoordinatorEntity[LGMusicFlowCoordinator], MediaPla
         """Initialize the media player."""
         super().__init__(coordinator)
         self._entry = entry
-        
+        self._stream_manager: LGMusicFlowStreamManager = coordinator.hass.data[DOMAIN][
+            DATA_STREAM_MANAGER
+        ]
+        self._current_stream_id: str | None = None
+
         info = coordinator.product_info.get("info", {})
         self._mac = info.get("wirelessmac") or info.get("btmac") or entry.data["host"]
         self._model = coordinator.product_info.get("modelname", "Music Flow")
@@ -78,7 +88,14 @@ class LGMusicFlowMediaPlayer(CoordinatorEntity[LGMusicFlowCoordinator], MediaPla
             EQUALIZER_MAP[code] for code in raw_eq_list if code in EQUALIZER_MAP
         ]
         if not self._sound_modes:
-            self._sound_modes = ["Standard", "Cinema", "Music", "Bass Blast", "Dolby Atmos", "Adaptive Sound Control (ASC)"]
+            self._sound_modes = [
+                "Standard",
+                "Cinema",
+                "Music",
+                "Bass Blast",
+                "Dolby Atmos",
+                "Adaptive Sound Control (ASC)",
+            ]
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -123,7 +140,7 @@ class LGMusicFlowMediaPlayer(CoordinatorEntity[LGMusicFlowCoordinator], MediaPla
         if play_code == STATE_BUFFERING:
             return MediaPlayerState.BUFFERING
 
-        func_type = self.coordinator.data.get("func", {}) .get("type", 0)
+        func_type = self.coordinator.data.get("func", {}).get("type", 0)
         # If active on a physical input (Optical, HDMI, Aux, BT), consider ON
         if func_type in (1, 3, 4, 6, 7, 15):
             return MediaPlayerState.ON
@@ -193,7 +210,7 @@ class LGMusicFlowMediaPlayer(CoordinatorEntity[LGMusicFlowCoordinator], MediaPla
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
-        target_vol = int(round(volume * 100))
+        target_vol = round(volume * 100)
         await self.coordinator.client.async_set_volume(target_vol)
         await self.coordinator.async_request_refresh()
 
@@ -228,20 +245,32 @@ class LGMusicFlowMediaPlayer(CoordinatorEntity[LGMusicFlowCoordinator], MediaPla
 
     async def async_media_stop(self) -> None:
         """Send stop command."""
-        if self.state in (MediaPlayerState.PLAYING, MediaPlayerState.PAUSED, MediaPlayerState.BUFFERING):
+        if self.state in (
+            MediaPlayerState.PLAYING,
+            MediaPlayerState.PAUSED,
+            MediaPlayerState.BUFFERING,
+        ):
             try:
                 await self.coordinator.client.async_media_stop()
-            except Exception:
-                pass
+            except LGMusicFlowError as err:
+                _LOGGER.debug("Unable to stop LG Music Flow playback: %s", err)
+        await self._stream_manager.async_release(self._current_stream_id)
+        self._current_stream_id = None
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off media player (stop playback and return to Wi-Fi standby)."""
-        if self.state in (MediaPlayerState.PLAYING, MediaPlayerState.PAUSED, MediaPlayerState.BUFFERING):
+        if self.state in (
+            MediaPlayerState.PLAYING,
+            MediaPlayerState.PAUSED,
+            MediaPlayerState.BUFFERING,
+        ):
             try:
                 await self.coordinator.client.async_media_stop()
-            except Exception:
-                pass
+            except LGMusicFlowError as err:
+                _LOGGER.debug("Unable to stop LG Music Flow playback: %s", err)
+        await self._stream_manager.async_release(self._current_stream_id)
+        self._current_stream_id = None
         await self.coordinator.client.async_set_function(0)
         await self.coordinator.async_request_refresh()
 
@@ -257,22 +286,67 @@ class LGMusicFlowMediaPlayer(CoordinatorEntity[LGMusicFlowCoordinator], MediaPla
         **kwargs: Any,
     ) -> None:
         """Play a piece of media."""
-        # Handle media_source (local files, TTS, radio)
         if media_source.is_media_source_id(media_id):
             sourced_media = await media_source.async_resolve_media(
                 self.hass, media_id, self.entity_id
             )
             media_id = sourced_media.url
 
-        # Format URL with HA base if relative
         media_id = async_process_play_media_url(self.hass, media_id)
 
-        title = kwargs.get("extra", {}).get("title") or "Home Assistant"
-        artist = kwargs.get("extra", {}).get("artist") or "Media Player"
+        extra = kwargs.get("extra") or {}
+        metadata = extra.get("metadata") or {}
+        title = metadata.get("title") or extra.get("title") or "Home Assistant"
+        artist = metadata.get("artist") or extra.get("artist") or "Media Player"
+        duration = int(
+            metadata.get("duration")
+            or extra.get("duration")
+            or extra.get("media_duration")
+            or 0
+        )
+        if duration <= 0:
+            duration = self._music_assistant_duration()
+        content_type_hint = str(media_type) if "/" in str(media_type) else None
 
-        _LOGGER.info("Streaming media to LG Music Flow (%s): %s", self.name, media_id)
-        await self.coordinator.client.async_play_media(media_id, title=title, artist=artist)
+        try:
+            prepared = await self._stream_manager.async_prepare(
+                media_id,
+                allowed_host=self._entry.data[CONF_HOST],
+                content_type_hint=content_type_hint,
+                duration=duration,
+            )
+        except LGMusicFlowStreamError as err:
+            raise HomeAssistantError(str(err)) from err
+
+        self._current_stream_id = prepared.object_id
+        _LOGGER.info(
+            "Streaming prepared object %s to LG Music Flow %s",
+            prepared.object_id,
+            self.name,
+        )
+        try:
+            await self.coordinator.client.async_play_media(
+                prepared.url,
+                title=title,
+                artist=artist,
+                duration=duration,
+                object_id=prepared.object_id,
+            )
+        except Exception:
+            await self._stream_manager.async_release(prepared.object_id)
+            self._current_stream_id = None
+            raise
         await self.coordinator.async_request_refresh()
+
+    def _music_assistant_duration(self) -> int:
+        """Return the active Music Assistant wrapper's reported duration."""
+        for state in self.hass.states.async_all("media_player"):
+            if (
+                state.attributes.get("app_id") == "music_assistant"
+                and state.attributes.get("active_queue") == self.entity_id
+            ):
+                return int(state.attributes.get("media_duration") or 0)
+        return 0
 
     async def async_browse_media(
         self,

@@ -2,6 +2,7 @@
 
 DOMAIN = "lg_musicflow"
 DEFAULT_PORT = 9741
+DATA_STREAM_MANAGER = "_stream_manager"
 
 # Functions (Sources)
 FUNCTION_MAP = {
