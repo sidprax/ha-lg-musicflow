@@ -52,6 +52,12 @@ class LGMusicFlowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             try:
                 prod = await client.async_get_product_info()
+            except LGMusicFlowError:
+                errors["base"] = "cannot_connect"
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected error connecting to LG Music Flow device")
+                errors["base"] = "unknown"
+            else:
                 info = prod.get("info", {})
                 mac = info.get("wirelessmac") or info.get("btmac") or host
                 name = info.get("name") or prod.get("petname") or f"LG Speaker ({host})"
@@ -67,11 +73,6 @@ class LGMusicFlowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_NAME: name,
                     },
                 )
-            except LGMusicFlowError:
-                errors["base"] = "cannot_connect"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected error connecting to LG Music Flow device")
-                errors["base"] = "unknown"
             finally:
                 await client.async_close()
 
@@ -115,24 +116,6 @@ class LGMusicFlowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 # Try to fetch device info and add directly to HA
                 try:
                     prod = await client.async_get_product_info()
-                    info = prod.get("info", {})
-                    mac = info.get("wirelessmac") or info.get("btmac") or host
-                    name = (
-                        spk_name
-                        or info.get("name")
-                        or prod.get("petname")
-                        or f"LG Speaker ({host})"
-                    )
-                    await self.async_set_unique_id(mac)
-                    self._abort_if_unique_id_configured(updates={CONF_HOST: host})
-                    return self.async_create_entry(
-                        title=name,
-                        data={
-                            CONF_HOST: host,
-                            CONF_PORT: DEFAULT_PORT,
-                            CONF_NAME: name,
-                        },
-                    )
                 except Exception:  # noqa: BLE001
                     return self.async_abort(reason="provision_success")
 
@@ -141,6 +124,25 @@ class LGMusicFlowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Error provisioning LG speaker Wi-Fi")
                 errors["base"] = "unknown"
+            else:
+                info = prod.get("info", {})
+                mac = info.get("wirelessmac") or info.get("btmac") or host
+                name = (
+                    spk_name
+                    or info.get("name")
+                    or prod.get("petname")
+                    or f"LG Speaker ({host})"
+                )
+                await self.async_set_unique_id(mac)
+                self._abort_if_unique_id_configured(updates={CONF_HOST: host})
+                return self.async_create_entry(
+                    title=name,
+                    data={
+                        CONF_HOST: host,
+                        CONF_PORT: DEFAULT_PORT,
+                        CONF_NAME: name,
+                    },
+                )
             finally:
                 await client.async_close()
 
@@ -177,21 +179,22 @@ class LGMusicFlowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         client = LGMusicFlowClient(host, DEFAULT_PORT)
         try:
             prod = await client.async_get_product_info()
-            info = prod.get("info", {})
-            mac = info.get("wirelessmac") or info.get("btmac") or host
-            self._discovered_name = (
-                info.get("name") or prod.get("petname") or f"LG Speaker ({host})"
-            )
-            self._discovered_model = prod.get("modelname", "Music Flow")
-            self._discovered_host = host
-            self._discovered_mac = mac
-
-            await self.async_set_unique_id(mac)
-            self._abort_if_unique_id_configured(updates={CONF_HOST: host})
         except Exception:  # noqa: BLE001
             return self.async_abort(reason="cannot_connect")
         finally:
             await client.async_close()
+
+        info = prod.get("info", {})
+        mac = info.get("wirelessmac") or info.get("btmac") or host
+        self._discovered_name = (
+            info.get("name") or prod.get("petname") or f"LG Speaker ({host})"
+        )
+        self._discovered_model = prod.get("modelname", "Music Flow")
+        self._discovered_host = host
+        self._discovered_mac = mac
+
+        await self.async_set_unique_id(mac)
+        self._abort_if_unique_id_configured(updates={CONF_HOST: host})
 
         self.context["title_placeholders"] = {
             "name": self._discovered_name,

@@ -257,6 +257,46 @@ class StreamServerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(body, bytes(128))
         self.manager._async_send_upstream_range.assert_not_awaited()
 
+    async def test_prepare_downloads_and_creates_temp_file(self) -> None:
+        """Verify non-MA HTTP media downloads to a temp file created via _create_temp_file."""
+
+        class FakeContent:
+            async def iter_chunked(self, chunk_size):
+                del chunk_size
+                yield b"audio-bytes"
+
+        class FakeResponse:
+            status = 200
+            content_length = 11
+            headers = {"Content-Type": "audio/mpeg"}
+            content = FakeContent()
+
+            def release(self):
+                return None
+
+        class FakeSession:
+            async def get(self, url, **kwargs):
+                del url, kwargs
+                return FakeResponse()
+
+        original_get_session = stream_module.async_get_clientsession
+        stream_module.async_get_clientsession = lambda hass: FakeSession()
+        self.addCleanup(
+            setattr,
+            stream_module,
+            "async_get_clientsession",
+            original_get_session,
+        )
+
+        prepared = await self.manager.async_prepare(
+            "http://127.0.0.1:8123/local/sample.mp3",
+            allowed_host="127.0.0.1",
+        )
+        self.assertIsNotNone(prepared.path)
+        self.assertEqual(prepared.path.read_bytes(), b"audio-bytes")
+        self.assertEqual(prepared.size, 11)
+        self.assertEqual(prepared.content_type, "audio/mpeg")
+
 
 if __name__ == "__main__":
     unittest.main()

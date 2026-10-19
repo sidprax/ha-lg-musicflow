@@ -15,6 +15,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
+from typing import BinaryIO
 from urllib.parse import urlsplit, urlunsplit
 
 import aiohttp
@@ -161,12 +162,10 @@ class LGMusicFlowStreamManager:
                     )
 
                 suffix = Path(parsed.path).suffix or ".bin"
-                descriptor, raw_path = tempfile.mkstemp(
-                    prefix="lg-musicflow-",
-                    suffix=suffix,
+                path, file_handle = await asyncio.to_thread(
+                    self._create_temp_file,
+                    suffix,
                 )
-                path = Path(raw_path)
-                file_handle = os.fdopen(descriptor, "wb")
                 size = 0
                 async for chunk in response.content.iter_chunked(128 * 1024):
                     size += len(chunk)
@@ -287,6 +286,19 @@ class LGMusicFlowStreamManager:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
             probe.connect((host, 9))
             return str(probe.getsockname()[0])
+
+    @staticmethod
+    def _create_temp_file(suffix: str) -> tuple[Path, BinaryIO]:
+        """Create and open a temporary media file off the event loop."""
+        descriptor, raw_path = tempfile.mkstemp(
+            prefix="lg-musicflow-",
+            suffix=suffix,
+        )
+        try:
+            return Path(raw_path), os.fdopen(descriptor, "wb")
+        except Exception:
+            os.close(descriptor)
+            raise
 
     @staticmethod
     def _unlink(path: Path) -> None:
