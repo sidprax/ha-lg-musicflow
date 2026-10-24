@@ -213,6 +213,10 @@ class LGMusicFlowClient:
         """Set auto power (automatic optical standby/switch)."""
         await self.async_send_command("AUTO_POWER_SET", {"autopower": auto_power})
 
+    async def async_power_off(self) -> None:
+        """Send power off command to put the speaker in standby."""
+        await self.async_send_command("POWER_OFF")
+
     async def async_set_woofer_level(self, level: int) -> None:
         """Set woofer level (-15 to +6 or as reported by wooferoffset/woofermax)."""
         await self.async_send_command("WOOFER_LEVEL_SET", {"wooferlevel": level})

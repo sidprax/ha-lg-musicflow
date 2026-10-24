@@ -24,6 +24,7 @@ Unlike standard DLNA (which often fails with `UPnPError 705: Access denied` on L
 - **Music Assistant Compatible**: Seamlessly compatible with Music Assistant via the Home Assistant Player provider.
 - **Guided Wi-Fi Setup Wizard**: Built-in config flow recovery wizard to configure and provision factory-reset speakers back onto your 2.4GHz Wi-Fi network.
 - **Standalone Setup Script**: Includes a standalone tool (`tools/setup_soundbar_wifi.js`) that allows configuring a reset speaker from any computer without an app.
+- **Configurable Polling & Standby Handling**: Configure active status update intervals (via Integration Options) and pause or back off polling when the speaker enters standby.
 
 ---
 

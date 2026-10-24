@@ -8,12 +8,20 @@ from urllib.parse import urlparse
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.core import callback
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.service_info.ssdp import SsdpServiceInfo
 
 from .client import LGMusicFlowClient, LGMusicFlowError
-from .const import DEFAULT_PORT, DOMAIN
+from .const import (
+    CONF_PAUSE_STANDBY_POLLING,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_PAUSE_STANDBY_POLLING,
+    DEFAULT_PORT,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,6 +30,14 @@ class LGMusicFlowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for LG Music Flow."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        """Get the options flow for this handler."""
+        return LGMusicFlowOptionsFlow(config_entry)
 
     def __init__(self) -> None:
         """Initialize the flow."""
@@ -225,3 +241,35 @@ class LGMusicFlowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "host": self._discovered_host,
             },
         )
+
+
+class LGMusicFlowOptionsFlow(config_entries.OptionsFlow):
+    """Handle options for LG Music Flow."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        options = self.config_entry.options
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    CONF_SCAN_INTERVAL,
+                    default=options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+                ): vol.All(vol.Coerce(int), vol.Range(min=3, max=60)),
+                vol.Optional(
+                    CONF_PAUSE_STANDBY_POLLING,
+                    default=options.get(
+                        CONF_PAUSE_STANDBY_POLLING, DEFAULT_PAUSE_STANDBY_POLLING
+                    ),
+                ): bool,
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)

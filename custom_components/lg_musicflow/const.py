@@ -4,6 +4,14 @@ DOMAIN = "lg_musicflow"
 DEFAULT_PORT = 9741
 DATA_STREAM_MANAGER = "_stream_manager"
 
+# Options and configuration
+CONF_SCAN_INTERVAL = "scan_interval"
+CONF_PAUSE_STANDBY_POLLING = "pause_standby_polling"
+
+DEFAULT_SCAN_INTERVAL = 6
+DEFAULT_STANDBY_SCAN_INTERVAL = 30
+DEFAULT_PAUSE_STANDBY_POLLING = False
+
 # Functions (Sources)
 FUNCTION_MAP = {
     0: "Wi-Fi",

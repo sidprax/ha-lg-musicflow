@@ -1,7 +1,9 @@
 {
   "domain": "lg_musicflow",
   "name": "LG MusicFlow (Legacy)",
-  "codeowners": ["@sidprax"],
+  "codeowners": [
+    "@sidprax"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/sidprax/ha-lg-musicflow",
   "integration_type": "hub",
@@ -16,5 +18,5 @@
       "deviceType": "urn:lge-com:device:MultiroomSpk:1"
     }
   ],
-  "version": "1.1.2"
+  "version": "1.1.3"
 }

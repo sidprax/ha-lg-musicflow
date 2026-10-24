@@ -27,12 +27,18 @@ if "voluptuous" not in sys.modules:
     vol.Schema = lambda schema: schema
     vol.Required = lambda key, **kwargs: key
     vol.Optional = lambda key, **kwargs: key
+    vol.All = lambda *args: args[0]
+    vol.Coerce = lambda t: t
+    vol.Range = lambda **kwargs: kwargs
     sys.modules["voluptuous"] = vol
 
 homeassistant = sys.modules.setdefault(
     "homeassistant", types.ModuleType("homeassistant")
 )
 homeassistant.__path__ = []
+core_mod = sys.modules.setdefault("homeassistant.core", types.ModuleType("homeassistant.core"))
+core_mod.callback = lambda f: f
+homeassistant.core = core_mod
 
 
 class AbortFlow(Exception):
@@ -82,8 +88,19 @@ class BaseConfigFlow:
         return {"type": "menu", "step_id": step_id, "menu_options": menu_options}
 
 
+class BaseOptionsFlow:
+    def __init__(self, config_entry) -> None:
+        self.config_entry = config_entry
+
+    def async_create_entry(self, *, title: str, data: dict) -> dict:
+        return {"type": "create_entry", "title": title, "data": data}
+
+    def async_show_form(self, *, step_id: str, data_schema=None, errors=None, description_placeholders=None) -> dict:
+        return {"type": "form", "step_id": step_id, "data_schema": data_schema, "errors": errors or {}}
+
 config_entries_mod = types.ModuleType("homeassistant.config_entries")
 config_entries_mod.ConfigFlow = BaseConfigFlow
+config_entries_mod.OptionsFlow = BaseOptionsFlow
 sys.modules["homeassistant.config_entries"] = config_entries_mod
 homeassistant.config_entries = config_entries_mod
 
@@ -215,6 +232,20 @@ class ConfigFlowAbortTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(FakeClient.instances), 1)
         self.assertTrue(FakeClient.instances[0].closed)
 
+
+    async def test_options_flow_init_shows_form(self) -> None:
+        entry = types.SimpleNamespace(options={})
+        options_flow = LGMusicFlowConfigFlow.async_get_options_flow(entry)
+        result = await options_flow.async_step_init()
+        self.assertEqual(result["type"], "form")
+        self.assertEqual(result["step_id"], "init")
+
+    async def test_options_flow_init_updates_options(self) -> None:
+        entry = types.SimpleNamespace(options={"scan_interval": 6})
+        options_flow = LGMusicFlowConfigFlow.async_get_options_flow(entry)
+        result = await options_flow.async_step_init({"scan_interval": 15, "pause_standby_polling": True})
+        self.assertEqual(result["type"], "create_entry")
+        self.assertEqual(result["data"], {"scan_interval": 15, "pause_standby_polling": True})
 
 if __name__ == "__main__":
     unittest.main()

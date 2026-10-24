@@ -54,5 +54,17 @@
       "provision_success": "Wi-Fi credentials sent to the speaker! You may now disconnect the Ethernet cable. The speaker will connect to your Wi-Fi network and be discovered in Home Assistant.",
       "hotspot_guide_complete": "Once setup is completed on your computer, Home Assistant will automatically discover your speaker on the network."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "LG Music Flow Options",
+        "description": "Configure polling and standby behavior for this speaker.",
+        "data": {
+          "scan_interval": "Status update interval while active (seconds)",
+          "pause_standby_polling": "Pause polling when speaker is in standby / idle"
+        }
+      }
+    }
   }
 }

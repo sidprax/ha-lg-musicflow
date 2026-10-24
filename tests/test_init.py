@@ -71,9 +71,16 @@ config_entries_mod = sys.modules.setdefault(
 
 
 class ConfigEntry:
-    def __init__(self, entry_id: str, data: dict) -> None:
+    def __init__(self, entry_id: str, data: dict, options: dict | None = None) -> None:
         self.entry_id = entry_id
         self.data = data
+        self.options = options or {}
+
+    def async_on_unload(self, callback) -> None:
+        pass
+
+    def add_update_listener(self, listener):
+        return listener
 
 
 config_entries_mod.ConfigEntry = ConfigEntry
@@ -132,6 +139,20 @@ class SetupEntryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(FakeClient.instances), 1)
         self.assertTrue(FakeClient.instances[0].closed)
 
+
+    async def test_update_listener_reloads_entry(self) -> None:
+        reloaded = []
+        async def fake_reload(entry_id: str) -> None:
+            reloaded.append(entry_id)
+
+        hass = types.SimpleNamespace(
+            config_entries=types.SimpleNamespace(
+                async_reload=fake_reload
+            )
+        )
+        entry = ConfigEntry("test_id", {"host": "10.0.2.99", "port": 9741})
+        await init_module.update_listener(hass, entry)
+        self.assertEqual(reloaded, ["test_id"])
 
 if __name__ == "__main__":
     unittest.main()

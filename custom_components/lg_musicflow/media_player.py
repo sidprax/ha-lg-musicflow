@@ -140,10 +140,16 @@ class LGMusicFlowMediaPlayer(
         if play_code == STATE_BUFFERING:
             return MediaPlayerState.BUFFERING
 
-        func_type = self.coordinator.data.get("func", {}).get("type", 0)
-        # If active on a physical input (Optical, HDMI, Aux, BT), consider ON
-        if func_type in (1, 3, 4, 6, 7, 15):
+        func = self.coordinator.data.get("func", {})
+        func_type = func.get("type", 0)
+        connect = func.get("connect", 1)
+
+        # If active on a physical input (Optical, HDMI, Aux, BT) and connected, consider ON
+        if func_type in (1, 3, 4, 6, 7, 15) and connect == 1:
             return MediaPlayerState.ON
+
+        if connect == 0:
+            return MediaPlayerState.OFF
 
         return MediaPlayerState.IDLE
 
@@ -259,7 +265,7 @@ class LGMusicFlowMediaPlayer(
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn off media player (stop playback and return to Wi-Fi standby)."""
+        """Turn off media player (stop playback and return to standby)."""
         if self.state in (
             MediaPlayerState.PLAYING,
             MediaPlayerState.PAUSED,
@@ -271,7 +277,10 @@ class LGMusicFlowMediaPlayer(
                 _LOGGER.debug("Unable to stop LG Music Flow playback: %s", err)
         await self._stream_manager.async_release(self._current_stream_id)
         self._current_stream_id = None
-        await self.coordinator.client.async_set_function(0)
+        try:
+            await self.coordinator.client.async_power_off()
+        except LGMusicFlowError:
+            await self.coordinator.client.async_set_function(0)
         await self.coordinator.async_request_refresh()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
