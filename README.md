@@ -1,6 +1,6 @@
 # LG MusicFlow (Legacy) for Home Assistant
 
-[![HACS Badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/default)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default)
 [![GitHub Release](https://img.shields.io/github/v/release/sidprax/ha-lg-musicflow)](https://github.com/sidprax/ha-lg-musicflow/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Validate with hassfest](https://github.com/sidprax/ha-lg-musicflow/actions/workflows/hassfest.yaml/badge.svg)](https://github.com/sidprax/ha-lg-musicflow/actions/workflows/hassfest.yaml)
@@ -41,11 +41,11 @@ Any LG speaker or soundbar using the LG Music Flow / Smart Audio platform, inclu
 
 ### Method 1: HACS (Recommended)
 
-1. Ensure [HACS](https://hacs.xyz/) is installed in Home Assistant.
-2. In Home Assistant, open **HACS > Integrations**.
-3. Click the three dots in the top right corner and select **Custom repositories**.
-4. Add `https://github.com/sidprax/ha-lg-musicflow` with Category **Integration**.
-5. Click **Download**, then restart Home Assistant.
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sidprax&repository=ha-lg-musicflow&category=integration)
+
+1. Click the button above to open the repository in HACS, or in Home Assistant go to **HACS > Integrations**.
+2. Search for **LG MusicFlow (Legacy)**.
+3. Click **Download**, then restart Home Assistant.
 
 ### Method 2: Manual Installation
 
@@ -57,7 +57,9 @@ Any LG speaker or soundbar using the LG Music Flow / Smart Audio platform, inclu
 
 ## Configuration
 
-1. In Home Assistant, go to **Settings > Devices & Services > Add Integration**.
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=lg_musicflow)
+
+1. Click the button above, or go to **Settings > Devices & Services > Add Integration**.
 2. Search for **LG MusicFlow (Legacy)** (or click **Configure** if automatically discovered via SSDP).
 3. Enter your speaker's IP address (port `9741`).
 
