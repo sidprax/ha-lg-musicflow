@@ -7,8 +7,9 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 
-from .client import LGMusicFlowClient
+from .client import LGMusicFlowClient, LGMusicFlowError
 from .const import DATA_STREAM_MANAGER, DEFAULT_PORT, DOMAIN
 from .coordinator import LGMusicFlowCoordinator
 from .stream import LGMusicFlowStreamManager
@@ -42,6 +43,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             await stream_manager.async_start()
             domain_data[DATA_STREAM_MANAGER] = stream_manager
         domain_data[entry.entry_id] = coordinator
+    except LGMusicFlowError as err:
+        await client.async_close()
+        raise ConfigEntryNotReady(
+            f"Could not connect to LG Music Flow speaker at {host}:{port}: {err}"
+        ) from err
     except Exception:
         await client.async_close()
         raise
