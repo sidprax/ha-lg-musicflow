@@ -74,12 +74,12 @@ class LGMusicFlowCoordinator(DataUpdateCoordinator):
             data = await self.client.async_get_status()
 
             func = data.get("func", {})
-            connect = func.get("connect", 1)
+            func_type = func.get("type", 0)
             play_state = data.get("play", {}).get("playing", -1)
 
             if play_state == STATE_PLAYING:
                 self.update_interval = self.fast_interval
-            elif connect == 0:
+            elif func_type == 0:
                 if self.pause_standby:
                     self.update_interval = None
                 else:

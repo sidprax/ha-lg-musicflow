@@ -141,5 +141,11 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(coord.update_interval)
 
 
+    async def test_physical_input_with_connect_zero_keeps_normal_interval(self) -> None:
+        client = FakeClient({"play": {"playing": -1}, "func": {"type": 7, "connect": 0}})
+        coord = LGMusicFlowCoordinator(None, client, {}, entry=None)
+        await coord._async_update_data()
+        self.assertEqual(coord.update_interval, timedelta(seconds=6))
+
 if __name__ == "__main__":
     unittest.main()

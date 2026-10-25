@@ -164,11 +164,35 @@ class MediaPlayerStateTests(unittest.IsolatedAsyncioTestCase):
         player = LGMusicFlowMediaPlayer(coord, entry)
         self.assertEqual(player.state, MediaPlayerState.ON)
 
-    def test_state_off_when_connect_zero(self) -> None:
+    def test_state_on_when_optical_arc_even_with_connect_zero(self) -> None:
+        coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 7, "connect": 0}})
+        entry = types.SimpleNamespace(data={"host": "10.0.2.154"})
+        player = LGMusicFlowMediaPlayer(coord, entry)
+        self.assertEqual(player.state, MediaPlayerState.ON)
+
+    def test_state_idle_when_wifi_and_connect_zero(self) -> None:
         coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 0, "connect": 0}})
         entry = types.SimpleNamespace(data={"host": "10.0.2.154"})
         player = LGMusicFlowMediaPlayer(coord, entry)
-        self.assertEqual(player.state, MediaPlayerState.OFF)
+        self.assertEqual(player.state, MediaPlayerState.IDLE)
+
+    async def test_async_turn_on_preserves_physical_input(self) -> None:
+        coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 4, "connect": 1}})
+        entry = types.SimpleNamespace(data={"host": "10.0.2.154"})
+        player = LGMusicFlowMediaPlayer(coord, entry)
+
+        await player.async_turn_on()
+        self.assertIsNone(coord.client.function_set)
+        self.assertTrue(coord.refreshed)
+
+    async def test_async_turn_on_sets_wifi_when_already_on_wifi(self) -> None:
+        coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 0, "connect": 0}})
+        entry = types.SimpleNamespace(data={"host": "10.0.2.154"})
+        player = LGMusicFlowMediaPlayer(coord, entry)
+
+        await player.async_turn_on()
+        self.assertEqual(coord.client.function_set, 0)
+        self.assertTrue(coord.refreshed)
 
     def test_state_idle_when_connected_wifi_not_playing(self) -> None:
         coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 0, "connect": 1}})

@@ -142,14 +142,10 @@ class LGMusicFlowMediaPlayer(
 
         func = self.coordinator.data.get("func", {})
         func_type = func.get("type", 0)
-        connect = func.get("connect", 1)
 
-        # If active on a physical input (Optical, HDMI, Aux, BT) and connected, consider ON
-        if func_type in (1, 3, 4, 6, 7, 15) and connect == 1:
+        # If active on a physical input (Optical, HDMI, Aux, BT), consider ON
+        if func_type in (1, 3, 4, 6, 7, 15):
             return MediaPlayerState.ON
-
-        if connect == 0:
-            return MediaPlayerState.OFF
 
         return MediaPlayerState.IDLE
 
@@ -284,8 +280,11 @@ class LGMusicFlowMediaPlayer(
         await self.coordinator.async_request_refresh()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn on media player (set to Wi-Fi mode)."""
-        await self.coordinator.client.async_set_function(0)
+        """Turn on media player."""
+        func = self.coordinator.data.get("func", {})
+        func_type = func.get("type", 0)
+        if func_type not in (1, 3, 4, 6, 7, 15):
+            await self.coordinator.client.async_set_function(0)
         await self.coordinator.async_request_refresh()
 
     async def async_play_media(
