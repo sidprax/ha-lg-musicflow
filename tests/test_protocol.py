@@ -287,5 +287,46 @@ class PlaybackSequenceTests(unittest.IsolatedAsyncioTestCase):
         )
 
 
+    async def test_set_sound_mode_sends_preview_and_commit(self) -> None:
+        received: list[dict] = []
+
+        async def receive_request(reader: asyncio.StreamReader) -> dict[str, object]:
+            header = await reader.readexactly(5)
+            frame_type, size = struct.unpack(">BI", header)
+            return decode_payload(frame_type, await reader.readexactly(size))
+
+        async def respond(writer: asyncio.StreamWriter, message: dict[str, object]) -> None:
+            writer.write(encode_frame(message))
+            await writer.drain()
+
+        async def handle_client(
+            reader: asyncio.StreamReader,
+            writer: asyncio.StreamWriter,
+        ) -> None:
+            try:
+                while True:
+                    req = await receive_request(reader)
+                    received.append(req)
+                    await respond(writer, {"result": "OK", "msg": req.get("msg")})
+                    if len(received) >= 2:
+                        break
+            finally:
+                writer.close()
+                await writer.wait_closed()
+
+        server = await asyncio.start_server(handle_client, "127.0.0.1", 0)
+        self.addAsyncCleanup(server.wait_closed)
+        self.addCleanup(server.close)
+        port = server.sockets[0].getsockname()[1]
+        client = LGMusicFlowClient("127.0.0.1", port, timeout=1.0)
+        self.addAsyncCleanup(client.async_close)
+
+        await client.async_set_sound_mode(13)
+
+        self.assertEqual(len(received), 2)
+        self.assertEqual(received[0], {"msg": "EQ_SETTING", "data": {"type": 0, "value": 13}})
+        self.assertEqual(received[1], {"msg": "EQ_SETTING", "data": {"type": 4, "value": 1}})
+
+
 if __name__ == "__main__":
     unittest.main()

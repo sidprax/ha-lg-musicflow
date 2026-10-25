@@ -131,6 +131,9 @@ class FakeClient:
     async def async_set_function(self, fn: int) -> None:
         self.function_set = fn
 
+    async def async_set_sound_mode(self, eq: int) -> None:
+        self.sound_mode_set = eq
+
 
 class FakeCoordinator:
     def __init__(self, data: dict) -> None:
@@ -207,6 +210,15 @@ class MediaPlayerStateTests(unittest.IsolatedAsyncioTestCase):
 
         await player.async_turn_off()
         self.assertTrue(coord.client.power_off_called)
+        self.assertTrue(coord.refreshed)
+
+    async def test_async_select_sound_mode(self) -> None:
+        coord = FakeCoordinator({"eq": {"currenteq": 14}, "func": {"type": 4, "connect": 1}})
+        entry = types.SimpleNamespace(data={"host": "10.0.2.154"})
+        player = LGMusicFlowMediaPlayer(coord, entry)
+
+        await player.async_select_sound_mode("Movie")
+        self.assertEqual(coord.client.sound_mode_set, 13)
         self.assertTrue(coord.refreshed)
 
 

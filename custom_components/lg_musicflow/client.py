@@ -204,6 +204,7 @@ class LGMusicFlowClient:
     async def async_set_sound_mode(self, eq_code: int) -> None:
         """Set sound mode / equalizer preset."""
         await self.async_send_command("EQ_SETTING", {"type": 0, "value": eq_code})
+        await self.async_send_command("EQ_SETTING", {"type": 4, "value": 1})
 
     async def async_set_night_mode(self, night_mode: bool) -> None:
         """Set night mode."""
