@@ -59,10 +59,10 @@
     "step": {
       "init": {
         "title": "LG Music Flow Options",
-        "description": "Configure polling and standby behavior for this speaker.",
+        "description": "Configure polling and standby behavior.\n\nLG soundbars treat any network status poll as an active controller session and will immediately wake up or stay awake. By default, polling pauses and the network connection closes while in standby (e.g. when TV turns off or playback stops), allowing the soundbar to enter and remain in sleep mode.\n\nAny command from Home Assistant (playback, volume, turn on) automatically reconnects and resumes polling.\n\nNote: Disabling standby pause will continuously poll the device, which prevents LG soundbars from entering or staying in standby.",
         "data": {
-          "scan_interval": "Status update interval while active (seconds)",
-          "pause_standby_polling": "Pause polling when speaker is in standby / idle"
+          "scan_interval": "Active status polling interval (seconds)",
+          "pause_standby_polling": "Pause polling during standby (Recommended: required for soundbars to stay off)"
         }
       }
     }

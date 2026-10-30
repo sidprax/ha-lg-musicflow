@@ -1,4 +1,4 @@
-﻿"""DataUpdateCoordinator for LG Music Flow speakers."""
+"""DataUpdateCoordinator for LG Music Flow speakers."""
 from __future__ import annotations
 
 from datetime import timedelta
@@ -15,6 +15,8 @@ from .const import (
     DEFAULT_PAUSE_STANDBY_POLLING,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_STANDBY_SCAN_INTERVAL,
+    STATE_BUFFERING,
+    STATE_PAUSED,
     STATE_PLAYING,
 )
 
@@ -73,17 +75,13 @@ class LGMusicFlowCoordinator(DataUpdateCoordinator):
         try:
             data = await self.client.async_get_status()
 
-            func = data.get("func", {})
-            func_type = func.get("type", 0)
             play_state = data.get("play", {}).get("playing", -1)
 
             if play_state == STATE_PLAYING:
                 self.update_interval = self.fast_interval
-            elif func_type == 0:
-                if self.pause_standby:
-                    self.update_interval = None
-                else:
-                    self.update_interval = self.standby_interval
+            elif self.pause_standby:
+                self.update_interval = None
+                await self.client.async_close()
             else:
                 self.update_interval = self.normal_interval
 
@@ -91,4 +89,5 @@ class LGMusicFlowCoordinator(DataUpdateCoordinator):
         except LGMusicFlowError as err:
             if self.pause_standby:
                 self.update_interval = None
+                await self.client.async_close()
             raise UpdateFailed(f"Error fetching data from speaker: {err}") from err

@@ -37,7 +37,7 @@ class LGMusicFlowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         """Get the options flow for this handler."""
-        return LGMusicFlowOptionsFlow(config_entry)
+        return LGMusicFlowOptionsFlow()
 
     def __init__(self) -> None:
         """Initialize the flow."""
@@ -245,10 +245,6 @@ class LGMusicFlowConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class LGMusicFlowOptionsFlow(config_entries.OptionsFlow):
     """Handle options for LG Music Flow."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

@@ -24,7 +24,7 @@ Unlike standard DLNA (which often fails with `UPnPError 705: Access denied` on L
 - **Music Assistant Compatible**: Seamlessly compatible with Music Assistant via the Home Assistant Player provider.
 - **Guided Wi-Fi Setup Wizard**: Built-in config flow recovery wizard to configure and provision factory-reset speakers back onto your 2.4GHz Wi-Fi network.
 - **Standalone Setup Script**: Includes a standalone tool (`tools/setup_soundbar_wifi.js`) that allows configuring a reset speaker from any computer without an app.
-- **Configurable Polling & Standby Handling**: Configure active status update intervals (via Integration Options) and pause or back off polling when the speaker enters standby.
+- **Configurable Polling & Standby Handling**: Native standby detection with automatic polling pause, allowing soundbars to sleep undisturbed with your TV or remote without being held awake by network traffic.
 
 ---
 
@@ -63,6 +63,12 @@ Any LG speaker or soundbar using the LG Music Flow / Smart Audio platform, inclu
 2. Search for **LG MusicFlow (Legacy)** (or click **Configure** if automatically discovered via SSDP).
 3. Enter your speaker's IP address (port `9741`).
 
+### Integration Options
+
+Click **Configure** on the integration card under **Settings > Devices & Services > LG MusicFlow** to adjust options:
+- **Active status polling interval**: Seconds between polls while actively playing or in use (3–60s, default: `6`). During active media streaming, a fast 3-second interval is automatically used for smooth position and volume tracking.
+- **Pause polling during standby**: Enabled by default (`true`). Pauses network polling and closes the TCP socket when the speaker is idle or in standby. **Required for LG soundbars to enter and stay in sleep mode.**
+
 ### Speaker Reset & Wi-Fi Provisioning
 
 If your speaker was factory reset or lost its Wi-Fi connection, select **Speaker not found / Reset & Wi-Fi Setup Wizard** during setup:
@@ -71,6 +77,47 @@ If your speaker was factory reset or lost its Wi-Fi connection, select **Speaker
   ```bash
   node tools/setup_soundbar_wifi.js
   ```
+
+---
+
+## Power, Standby & Polling Behavior
+
+### Hardware Reality
+LG soundbar hardware treats any incoming TCP connection on port `9741` as an active controller session. If Home Assistant polls the soundbar while it is in standby, the incoming connection immediately wakes up the display and hardware (for example, showing `OPTICAL` or `ARC` right after turning off).
+
+**Any active polling will prevent the soundbar from staying in standby.**
+
+### Standby Detection & Automatic Polling Pause
+To ensure soundbars can turn off and stay asleep, the integration automatically pauses polling and closes the TCP socket when standby or idle is detected:
+1. **HDMI ARC / Optical / Physical Inputs**: Detected when the connected TV or input turns off (`connect == 0`). The soundbar enters low-power standby and Home Assistant stops polling completely.
+2. **Wi-Fi Streaming**: When playback finishes or `turn_off` is called, polling pauses so the soundbar's hardware auto-power timer can expire undisturbed.
+3. **Turn Off in HA**: Calling `turn_off` stops playback and puts the entity into standby without hijacking or overwriting your physical TV input.
+
+### Seamless Waking
+Any action triggered from Home Assistant instantly reconnects, wakes the soundbar, and resumes active polling:
+- Playing music, radio, or TTS announcements (`play_media`)
+- Adjusting volume or mute
+- Selecting an input source or sound mode
+- Calling `turn_on`
+
+### Always-On Speakers (H3, H4, H5, H7)
+Standalone Music Flow wireless speakers do not have an AC standby mode and are always-on network devices. If you prefer continuous polling at all times on these models, you can uncheck **Pause polling during standby** in the integration options.
+
+### Syncing with TV Power (Optional Automation)
+When you turn on your TV, HDMI CEC automatically powers on the soundbar and routes TV audio locally. If you want Home Assistant to instantly reflect the TV-on state without waiting for a command in HA, you can add this optional automation:
+
+```yaml
+alias: Sync LG Soundbar on TV Power
+description: "Refresh soundbar state when the TV is powered on"
+trigger:
+  - platform: state
+    entity_id: media_player.your_tv
+    to: "on"
+action:
+  - action: homeassistant.update_entity
+    target:
+      entity_id: media_player.lg_soundbar
+```
 
 ---
 

@@ -41,6 +41,7 @@ class MediaPlayerState:
     ON = "on"
     OFF = "off"
     IDLE = "idle"
+    STANDBY = "standby"
 
 
 class MediaPlayerEntityFeature:
@@ -104,17 +105,21 @@ class CoordinatorEntity(Generic[_T]):
 
 update_coord_mod.CoordinatorEntity = CoordinatorEntity
 
+core_mod = sys.modules.setdefault(
+    "homeassistant.core", types.ModuleType("homeassistant.core")
+)
+core_mod.HomeAssistant = object
+
 const_mod = sys.modules.setdefault(
     "homeassistant.const", types.ModuleType("homeassistant.const")
 )
 const_mod.CONF_HOST = "host"
 const_mod.CONF_NAME = "name"
 
+from custom_components.lg_musicflow.client import LGMusicFlowError
 from custom_components.lg_musicflow.const import (
     DATA_STREAM_MANAGER,
     DOMAIN,
-    STATE_BUFFERING,
-    STATE_PAUSED,
     STATE_PLAYING,
 )
 from custom_components.lg_musicflow.media_player import LGMusicFlowMediaPlayer
@@ -123,7 +128,9 @@ from custom_components.lg_musicflow.media_player import LGMusicFlowMediaPlayer
 class FakeClient:
     def __init__(self) -> None:
         self.power_off_called = False
-        self.function_set = None
+        self.function_set: int | None = None
+        self.sound_mode_set: int | None = None
+        self.closed = False
 
     async def async_power_off(self) -> None:
         self.power_off_called = True
@@ -131,25 +138,42 @@ class FakeClient:
     async def async_set_function(self, fn: int) -> None:
         self.function_set = fn
 
-    async def async_set_sound_mode(self, eq: int) -> None:
-        self.sound_mode_set = eq
+    async def async_set_sound_mode(self, mode: int) -> None:
+        self.sound_mode_set = mode
+
+    async def async_media_stop(self) -> None:
+        pass
+
+    async def async_close(self) -> None:
+        self.closed = True
 
 
 class FakeCoordinator:
-    def __init__(self, data: dict) -> None:
-        self.data = data
-        self.product_info = {"info": {"wirelessmac": "00:11:22:33:44:55"}}
+    def __init__(self, data: dict | None = None) -> None:
+        self.data = data or {}
+        self.product_info = {
+            "modelname": "SJ9",
+            "info": {
+                "wirelessmac": "00:11:22:33:44:55",
+                "functionlist": [0, 4, 7],
+                "eqlist": [0, 7, 13, 14, 15],
+            },
+        }
         self.client = FakeClient()
-        self.refreshed = False
         self.hass = types.SimpleNamespace(
-            data={DOMAIN: {DATA_STREAM_MANAGER: types.SimpleNamespace(async_release=self._fake_release)}}
+            data={DOMAIN: {DATA_STREAM_MANAGER: FakeStreamManager()}}
         )
-
-    async def _fake_release(self, stream_id):
-        pass
+        self.refreshed = False
+        self.pause_standby = True
+        self.update_interval = None
 
     async def async_request_refresh(self) -> None:
         self.refreshed = True
+
+
+class FakeStreamManager:
+    async def async_release(self, stream_id: str | None) -> None:
+        pass
 
 
 class MediaPlayerStateTests(unittest.IsolatedAsyncioTestCase):
@@ -167,17 +191,40 @@ class MediaPlayerStateTests(unittest.IsolatedAsyncioTestCase):
         player = LGMusicFlowMediaPlayer(coord, entry)
         self.assertEqual(player.state, MediaPlayerState.ON)
 
-    def test_state_on_when_optical_arc_even_with_connect_zero(self) -> None:
+    def test_state_standby_when_optical_arc_with_connect_zero(self) -> None:
         coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 7, "connect": 0}})
         entry = types.SimpleNamespace(data={"host": "10.0.2.154"})
         player = LGMusicFlowMediaPlayer(coord, entry)
-        self.assertEqual(player.state, MediaPlayerState.ON)
+        self.assertEqual(player.state, MediaPlayerState.STANDBY)
 
     def test_state_idle_when_wifi_and_connect_zero(self) -> None:
         coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 0, "connect": 0}})
         entry = types.SimpleNamespace(data={"host": "10.0.2.154"})
         player = LGMusicFlowMediaPlayer(coord, entry)
         self.assertEqual(player.state, MediaPlayerState.IDLE)
+
+    async def test_async_turn_off_sets_standby_state(self) -> None:
+        coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 4, "connect": 1}})
+        entry = types.SimpleNamespace(data={"host": "10.0.2.154"})
+        player = LGMusicFlowMediaPlayer(coord, entry)
+        self.assertEqual(player.state, MediaPlayerState.ON)
+
+        await player.async_turn_off()
+        self.assertEqual(player.state, MediaPlayerState.STANDBY)
+        self.assertTrue(coord.client.power_off_called)
+        self.assertTrue(coord.refreshed)
+
+    async def test_async_turn_on_resets_standby_state(self) -> None:
+        coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 4, "connect": 1}})
+        entry = types.SimpleNamespace(data={"host": "10.0.2.154"})
+        player = LGMusicFlowMediaPlayer(coord, entry)
+
+        await player.async_turn_off()
+        self.assertEqual(player.state, MediaPlayerState.STANDBY)
+
+        await player.async_turn_on()
+        self.assertEqual(player.state, MediaPlayerState.ON)
+        self.assertTrue(coord.refreshed)
 
     async def test_async_turn_on_preserves_physical_input(self) -> None:
         coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 4, "connect": 1}})
@@ -203,13 +250,17 @@ class MediaPlayerStateTests(unittest.IsolatedAsyncioTestCase):
         player = LGMusicFlowMediaPlayer(coord, entry)
         self.assertEqual(player.state, MediaPlayerState.IDLE)
 
-    async def test_async_turn_off_calls_async_power_off(self) -> None:
+    async def test_async_turn_off_does_not_force_wifi_on_power_off_error(self) -> None:
         coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 4, "connect": 1}})
         entry = types.SimpleNamespace(data={"host": "10.0.2.154"})
         player = LGMusicFlowMediaPlayer(coord, entry)
 
+        async def failing_power_off():
+            raise LGMusicFlowError("parsing error")
+
+        coord.client.async_power_off = failing_power_off
         await player.async_turn_off()
-        self.assertTrue(coord.client.power_off_called)
+        self.assertIsNone(coord.client.function_set)
         self.assertTrue(coord.refreshed)
 
     async def test_async_select_sound_mode(self) -> None:

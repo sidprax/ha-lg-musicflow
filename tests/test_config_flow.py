@@ -89,8 +89,11 @@ class BaseConfigFlow:
 
 
 class BaseOptionsFlow:
-    def __init__(self, config_entry) -> None:
-        self.config_entry = config_entry
+    _config_entry = None
+
+    @property
+    def config_entry(self):
+        return self._config_entry
 
     def async_create_entry(self, *, title: str, data: dict) -> dict:
         return {"type": "create_entry", "title": title, "data": data}
@@ -236,6 +239,7 @@ class ConfigFlowAbortTests(unittest.IsolatedAsyncioTestCase):
     async def test_options_flow_init_shows_form(self) -> None:
         entry = types.SimpleNamespace(options={})
         options_flow = LGMusicFlowConfigFlow.async_get_options_flow(entry)
+        options_flow._config_entry = entry
         result = await options_flow.async_step_init()
         self.assertEqual(result["type"], "form")
         self.assertEqual(result["step_id"], "init")
@@ -243,6 +247,7 @@ class ConfigFlowAbortTests(unittest.IsolatedAsyncioTestCase):
     async def test_options_flow_init_updates_options(self) -> None:
         entry = types.SimpleNamespace(options={"scan_interval": 6})
         options_flow = LGMusicFlowConfigFlow.async_get_options_flow(entry)
+        options_flow._config_entry = entry
         result = await options_flow.async_step_init({"scan_interval": 15, "pause_standby_polling": True})
         self.assertEqual(result["type"], "create_entry")
         self.assertEqual(result["data"], {"scan_interval": 15, "pause_standby_polling": True})

@@ -67,6 +67,7 @@ class LGMusicFlowMediaPlayer(
             DATA_STREAM_MANAGER
         ]
         self._current_stream_id: str | None = None
+        self._is_turned_off: bool = False
 
         info = coordinator.product_info.get("info", {})
         self._mac = info.get("wirelessmac") or info.get("btmac") or entry.data["host"]
@@ -130,6 +131,12 @@ class LGMusicFlowMediaPlayer(
     @property
     def state(self) -> MediaPlayerState:
         """Return the state of the player."""
+        if not self.coordinator.data:
+            return MediaPlayerState.OFF
+
+        if self._is_turned_off:
+            return MediaPlayerState.STANDBY
+
         play_data = self.coordinator.data.get("play", {})
         play_code = play_data.get("playing", -1)
 
@@ -142,9 +149,12 @@ class LGMusicFlowMediaPlayer(
 
         func = self.coordinator.data.get("func", {})
         func_type = func.get("type", 0)
+        connect = func.get("connect", 1)
 
-        # If active on a physical input (Optical, HDMI, Aux, BT), consider ON
+        # Physical inputs (Bluetooth, Aux, Optical, HDMI, ARC, Optical/ARC)
         if func_type in (1, 3, 4, 6, 7, 15):
+            if connect == 0:
+                return MediaPlayerState.STANDBY
             return MediaPlayerState.ON
 
         return MediaPlayerState.IDLE
@@ -223,6 +233,7 @@ class LGMusicFlowMediaPlayer(
 
     async def async_select_source(self, source: str) -> None:
         """Select input source."""
+        self._is_turned_off = False
         fn_code = FUNCTION_REVERSE_MAP.get(source)
         if fn_code is not None:
             await self.coordinator.client.async_set_function(fn_code)
@@ -237,6 +248,7 @@ class LGMusicFlowMediaPlayer(
 
     async def async_media_play(self) -> None:
         """Send play command."""
+        self._is_turned_off = False
         await self.coordinator.client.async_media_play()
         await self.coordinator.async_request_refresh()
 
@@ -273,15 +285,20 @@ class LGMusicFlowMediaPlayer(
                 _LOGGER.debug("Unable to stop LG Music Flow playback: %s", err)
         await self._stream_manager.async_release(self._current_stream_id)
         self._current_stream_id = None
+        self._is_turned_off = True
         try:
             await self.coordinator.client.async_power_off()
         except LGMusicFlowError:
-            await self.coordinator.client.async_set_function(0)
+            pass
+        if self.coordinator.pause_standby:
+            self.coordinator.update_interval = None
+            await self.coordinator.client.async_close()
         await self.coordinator.async_request_refresh()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on media player."""
-        func = self.coordinator.data.get("func", {})
+        self._is_turned_off = False
+        func = self.coordinator.data.get("func", {}) if self.coordinator.data else {}
         func_type = func.get("type", 0)
         if func_type not in (1, 3, 4, 6, 7, 15):
             await self.coordinator.client.async_set_function(0)
@@ -294,6 +311,7 @@ class LGMusicFlowMediaPlayer(
         **kwargs: Any,
     ) -> None:
         """Play a piece of media."""
+        self._is_turned_off = False
         if media_source.is_media_source_id(media_id):
             sourced_media = await media_source.async_resolve_media(
                 self.hass, media_id, self.entity_id
