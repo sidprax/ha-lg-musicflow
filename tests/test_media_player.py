@@ -185,17 +185,17 @@ class MediaPlayerStateTests(unittest.IsolatedAsyncioTestCase):
         player = LGMusicFlowMediaPlayer(coord, entry)
         self.assertEqual(player.state, MediaPlayerState.PLAYING)
 
-    def test_state_on_when_optical_and_connected(self) -> None:
+    def test_state_on_when_optical(self) -> None:
         coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 4, "connect": 1}})
         entry = types.SimpleNamespace(data={"host": "10.0.2.154"})
         player = LGMusicFlowMediaPlayer(coord, entry)
         self.assertEqual(player.state, MediaPlayerState.ON)
 
-    def test_state_standby_when_optical_arc_with_connect_zero(self) -> None:
+    def test_state_on_when_arc_even_with_connect_zero(self) -> None:
         coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 7, "connect": 0}})
         entry = types.SimpleNamespace(data={"host": "10.0.2.154"})
         player = LGMusicFlowMediaPlayer(coord, entry)
-        self.assertEqual(player.state, MediaPlayerState.STANDBY)
+        self.assertEqual(player.state, MediaPlayerState.ON)
 
     def test_state_idle_when_wifi_and_connect_zero(self) -> None:
         coord = FakeCoordinator({"play": {"playing": -1}, "func": {"type": 0, "connect": 0}})

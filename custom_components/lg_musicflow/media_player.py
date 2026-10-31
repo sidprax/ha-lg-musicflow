@@ -149,12 +149,9 @@ class LGMusicFlowMediaPlayer(
 
         func = self.coordinator.data.get("func", {})
         func_type = func.get("type", 0)
-        connect = func.get("connect", 1)
 
         # Physical inputs (Bluetooth, Aux, Optical, HDMI, ARC, Optical/ARC)
         if func_type in (1, 3, 4, 6, 7, 15):
-            if connect == 0:
-                return MediaPlayerState.STANDBY
             return MediaPlayerState.ON
 
         return MediaPlayerState.IDLE
@@ -222,12 +219,14 @@ class LGMusicFlowMediaPlayer(
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
+        self._is_turned_off = False
         target_vol = round(volume * 100)
         await self.coordinator.client.async_set_volume(target_vol)
         await self.coordinator.async_request_refresh()
 
     async def async_mute_volume(self, mute: bool) -> None:
         """Mute (true) or unmute (false) media player."""
+        self._is_turned_off = False
         await self.coordinator.client.async_set_mute(mute)
         await self.coordinator.async_request_refresh()
 
@@ -241,6 +240,7 @@ class LGMusicFlowMediaPlayer(
 
     async def async_select_sound_mode(self, sound_mode: str) -> None:
         """Select sound mode (equalizer preset)."""
+        self._is_turned_off = False
         eq_code = EQUALIZER_REVERSE_MAP.get(sound_mode)
         if eq_code is not None:
             await self.coordinator.client.async_set_sound_mode(eq_code)

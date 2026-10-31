@@ -87,11 +87,11 @@ LG soundbar hardware treats any incoming TCP connection on port `9741` as an act
 
 **Any active polling will prevent the soundbar from staying in standby.**
 
-### Standby Detection & Automatic Polling Pause
-To ensure soundbars can turn off and stay asleep, the integration automatically pauses polling and closes the TCP socket when standby or idle is detected:
-1. **HDMI ARC / Optical / Physical Inputs**: Detected when the connected TV or input turns off (`connect == 0`). The soundbar enters low-power standby and Home Assistant stops polling completely.
-2. **Wi-Fi Streaming**: When playback finishes or `turn_off` is called, polling pauses so the soundbar's hardware auto-power timer can expire undisturbed.
-3. **Turn Off in HA**: Calling `turn_off` stops playback and puts the entity into standby without hijacking or overwriting your physical TV input.
+### Standby & Polling Pause
+To ensure soundbars can turn off and stay asleep, the integration automatically pauses background polling and closes the TCP connection when idle:
+1. **Physical TV Inputs (ARC, Optical, HDMI)**: When active on physical inputs, the soundbar remains `on` with full volume and sound mode controls available in Home Assistant. Turning off the TV allows the soundbar to enter low-power sleep via HDMI-CEC or auto-power without background network traffic waking it.
+2. **Wi-Fi Streaming**: When active playback finishes or `turn_off` is called, polling pauses so the soundbar's hardware auto-power timer can expire undisturbed.
+3. **Turn Off in HA**: Calling `turn_off` stops playback, sends the native standby command, and puts the entity into standby without hijacking or muting your physical TV input.
 
 ### Seamless Waking
 Any action triggered from Home Assistant instantly reconnects, wakes the soundbar, and resumes active polling:
